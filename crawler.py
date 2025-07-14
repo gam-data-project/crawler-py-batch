@@ -4,10 +4,21 @@ from dotenv import load_dotenv
 import os
 import time
 from datetime import datetime, timedelta
+from selenium.webdriver.chrome.options import Options
+
+#headless Chrome 
+options = Options()
+options.add_argument('--headless')
+options.add_argument('--no-sandbox')
+options.add_argument('--disable-dev-shm-usage')
+options.add_argument('--disable-gpu')
+options.add_argument('--user-data-dir=/tmp/unique-profile') 
+
+driver = webdriver.Chrome(options=options)
 
 # .env 파일 로드
 load_dotenv()
-
+driver.get(os.getenv("NONGRA_URL"))
 # 로그인 정보 로드
 login_id = os.getenv("NONGRA_LOGIN_ID")
 login_pw = os.getenv("NONGRA_LOGIN_PW")
@@ -15,9 +26,9 @@ login_pw = os.getenv("NONGRA_LOGIN_PW")
 print("ID:", login_id)
 print("PW:", login_pw)
 
-driver = webdriver.Chrome()
-nongra_url = os.getenv("NONGRA_URL")
-driver.get(nongra_url)
+#driver = webdriver.Chrome()
+#nongra_url = os.getenv("NONGRA_URL")
+#driver.get(nongra_url)
 
 # ID 입력
 input_id = driver.find_element(By.ID, "login_id")
