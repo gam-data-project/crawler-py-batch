@@ -17,15 +17,16 @@ options.add_argument('--user-data-dir=/tmp/unique-profile')
 driver = webdriver.Chrome(options=options)
 
 # .env 파일 로드
-load_dotenv()
-driver.get(os.getenv("NONGRA_URL"))
+#load_dotenv()
+#driver.get(os.getenv("NONGRA_URL"))
+#login_id = os.getenv("NONGRA_LOGIN_ID")
+#login_pw = os.getenv("NONGRA_LOGIN_PW")
+
 # 로그인 정보 로드
-login_id = os.getenv("NONGRA_LOGIN_ID")
-login_pw = os.getenv("NONGRA_LOGIN_PW")
-
-print("ID:", login_id)
-print("PW:", login_pw)
-
+url = os.environ["NONGRA_URL"]
+login_id = os.environ["NONGRA_LOGIN_ID"]
+login_pw = os.environ["NONGRA_LOGIN_PW"]
+driver.get(url)
 #driver = webdriver.Chrome()
 #nongra_url = os.getenv("NONGRA_URL")
 #driver.get(nongra_url)
