@@ -61,10 +61,10 @@ def extract_order_items(driver) -> list[dict]:
 
 
 """
-    입금완료일을 추출하여 딕셔너리로 반환
-    - 입금완료 상태가 아닐 경우 {'order_date': None}
-    - 입금완료일이 존재할 경우 {'order_date': 'YYYY-MM-DD HH:MM:SS'}
-    """
+입금완료일을 추출하여 딕셔너리로 반환
+- 입금완료 상태가 아닐 경우 {'order_date': None}
+- 입금완료일이 존재할 경우 {'order_date': 'YYYY-MM-DD HH:MM:SS'}
+"""
 def extract_deposit_date(driver) -> dict:
     
     result = {'order_date': None}
