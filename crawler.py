@@ -10,6 +10,23 @@ from parser import extract_deposit_date
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+"""
+주문최소된 주문서 확인
+-주문 목록 페이지 내에서 취소된 주문을 걸러냄
+-주문 목록 페이지에서 해당 주문(root_idx)이 '주문취소' 상태인지 확인
+"""
+
+def is_canceled_order(driver, root_idx: str) -> bool:
+
+    try:
+        xpath = f'//*[@id="centerbody_scroll"]//div[@attr-idx="{root_idx}"]/../../..//div[contains(text(), "주문취소")]'
+        cancel_elements = driver.find_elements(By.XPATH, xpath)
+        return len(cancel_elements) > 0
+    except Exception as e:
+        print(f"❌ 주문취소 확인 중 오류 (root_idx={root_idx}):", e)
+        return False
+
+
 
 # .env 로드
 load_dotenv()
@@ -95,7 +112,19 @@ while start_date <= end_date:
 
     # 주문 ID 추출
     order_elements = driver.find_elements(By.CSS_SELECTOR, "div.btn_all.do_show.order_view.ir")
-    order_ids = [elem.get_attribute("attr-idx") for elem in order_elements]
+    order_ids = []
+
+    for elem in order_elements:
+        root_idx = elem.get_attribute("attr-idx")
+
+    # 주문취소 여부 확인
+        if is_canceled_order(driver, root_idx):
+            print(f"🚫 주문취소됨 (root_idx={root_idx}) → 건너뜀")
+            continue
+
+        order_ids.append(root_idx)
+    
+    # order_ids = [elem.get_attribute("attr-idx") for elem in order_elements]
     print(f"🧾 주문 수: {len(order_ids)}")
 
     for root_idx in order_ids:
