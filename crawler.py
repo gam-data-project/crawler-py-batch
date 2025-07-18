@@ -46,10 +46,6 @@ driver = webdriver.Chrome(options=options)
 # 페이지 접속
 driver.get(url)
 
-# 현재 페이지를 debug.html로 저장 (확인용)
-# with open("debug.html", "w", encoding="utf-8") as f:
-#     f.write(driver.page_source)
-
 # 로그인 여부 판단
 if "로그인" in driver.page_source and "login_id" in driver.page_source:
     print("🔐 로그인 시도 중...")
@@ -107,8 +103,8 @@ while start_date <= end_date:
         print(f"🔗 상세 주문 URL: {detail_url}")
         time.sleep(2)
         # TODO: 여기에 상세 정보 수집 로직 추가
-        html = driver.page_source
-        parsed = extract_order_items(html)
+
+        parsed = extract_order_items(driver)
 
         if not parsed:
             print("⚠️  데이터 없음 또는 구조 다름 (건너뜀)")
