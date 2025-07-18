@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 from selenium.webdriver.chrome.options import Options
 from parser import extract_order_items
+from parser import extract_deposit_date
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -106,11 +107,15 @@ while start_date <= end_date:
 
         parsed = extract_order_items(driver)
 
-        if not parsed:
+        date = extract_deposit_date(driver)
+
+        if not parsed or not date:
             print("⚠️  데이터 없음 또는 구조 다름 (건너뜀)")
         else:
             for p in parsed:
                 print(p)
+            
+            print(date)
 
 
     start_date += timedelta(days=1)
