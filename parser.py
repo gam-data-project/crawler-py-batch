@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import re
-
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 def parse_price(text: str) -> int:
     """가격 문자열에서 숫자 추출"""
@@ -19,42 +20,45 @@ def parse_product_name(name: str) -> str:
     return re.sub(r'\(\d+개\)', '', name).strip()
 
 
-def extract_order_items(html: str) -> list[dict]:
-    soup = BeautifulSoup(html, 'html.parser')
+def extract_order_items(driver) -> list[dict]:
     result = []
 
-    divs = soup.select('div.lf.clfix')
-    if len(divs) < 3:
-        return result  # 구조 예상과 다르면 빈 리스트 반환
+    #제품 정보 추출
+    products_div = driver.find_element(By.XPATH, '//*[@id="f_order"]/div/div/div/div[1]/div[7]/div[1]/div[1]')
 
-    # 1번째: 상품 목록
-    product_div = divs[0]
-    product_items = product_div.select('div.clfix[style*="height: 40px"]')
+    with open(f"debug_xpath.html", "w", encoding="utf-8") as f:
+        f.write(products_div.get_attribute("outerHTML"))
+    print("💾 debug_xpath.html 저장 완료")
 
-    # 3번째: 결제 요약 (배송비 판단용)
-    summary_div = divs[2]
-    total_elem = summary_div.select_one('span.fr')
-    delivery_fee = parse_price(total_elem.text) if total_elem else 0
-    is_shipping_included = delivery_fee > 0
+    # products_div 내부 요소 파싱
+    items = products_div.find_elements(By.CLASS_NAME, "clfix")
 
-    for div in product_items:
-        name_elem = div.select_one('span.fl')
-        price_elem = div.select_one('span.fr')
-        if not name_elem or not price_elem:
+    for item in items:
+        try:
+            name_elem = item.find_element(By.CLASS_NAME, "fl")
+            price_elem = item.find_element(By.CLASS_NAME, "fr")
+
+            full_text = name_elem.text.strip()
+            price_text = price_elem.text.strip()
+
+            quantity = parse_quantity(full_text)
+            product_total = parse_price(price_text)
+            unit_price = int(product_total / quantity) if quantity else 0
+            product_name = parse_product_name(full_text)
+
+            result.append({
+                "product_name_raw": product_name,
+                "quantity": quantity,
+                "product_total": product_total,
+                "unit_price": unit_price,
+                #"is_shipping_included": False  # 배송비는 이 구조에선 없음
+            })
+        except Exception as e:
+            print(f"⚠️ 파싱 실패: {e}")
             continue
 
-        full_text = name_elem.text.strip()
-        product_total = parse_price(price_elem.text)
-        quantity = parse_quantity(full_text)
-        unit_price = int(product_total / quantity) if quantity else 0
-        product_name_raw = parse_product_name(full_text)
-
-        result.append({
-            'product_name_raw': product_name_raw,
-            'quantity': quantity,
-            'product_total': product_total,
-            'unit_price': unit_price,
-            'is_shipping_included': is_shipping_included,
-        })
-
     return result
+
+
+
+
