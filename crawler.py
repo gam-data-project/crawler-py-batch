@@ -135,20 +135,20 @@ while start_date <= end_date:
         time.sleep(2)
         # TODO: 여기에 상세 정보 수집 로직 추가
 
-        #parsed = extract_order_items(driver)
+        parsed = extract_order_items(driver)
 
-        #date = extract_deposit_date(driver)
+        date = extract_deposit_date(driver)
 
         shipping = extract_shipping_fee(driver)
 
 
-        # if not parsed or not date:
-        #     print("⚠️  데이터 없음 또는 구조 다름 (건너뜀)")
-        # else:
-        #     for p in parsed:
-        #         print(p)
+        if not parsed or not date:
+            print("⚠️  데이터 없음 또는 구조 다름 (건너뜀)")
+        else:
+            for p in parsed:
+                print(p)
             
-        #     print(date)
+            print(date)
 
         print("🚚 배송비:", shipping)
 
