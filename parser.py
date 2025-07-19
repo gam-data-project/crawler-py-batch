@@ -87,3 +87,35 @@ def extract_deposit_date(driver) -> dict:
     return result
 
 
+"""
+배송비 및 배송비 포함 여부 추출
+- 배송비 정보가 없거나 파싱 실패 시: {"shipping_fee": None, "shipping_included": None}
+- 정상 파싱 시: {"shipping_fee": 3500, "shipping_included": True}
+"""
+
+def extract_shipping_fee(driver) -> dict:
+    
+    result = {
+        "shipping_included": None,
+        "shipping_fee": None
+    }
+    fee_block = driver.find_element(By.XPATH, '//*[@id="f_order"]/div/div/div/div[1]/div[7]/div[1]/div[3]/div')
+    fee_divs = fee_block.find_elements(By.CLASS_NAME, "clfix")
+    try:
+        
+        for div in fee_divs:
+            try:
+                label = div.find_element(By.CLASS_NAME, "fl").text.strip()
+                if "배송비" in label:
+                    fee_text = div.find_element(By.CLASS_NAME, "fr").text.strip()
+                    fee = parse_price(fee_text)
+                    result["shipping_included"] = fee > 0
+                    result["shipping_fee"] = fee
+                    break
+            except Exception:
+                continue
+
+    except Exception as e:
+        print("❌ 배송비 추출 오류:", e)
+
+    return result
