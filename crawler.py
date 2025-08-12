@@ -10,7 +10,7 @@ from parser import extract_deposit_date
 from parser import extract_shipping_fee
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
+#너애
 """
 주문최소된 주문서 확인
 -주문 목록 페이지 내에서 취소된 주문을 걸러냄
