@@ -33,7 +33,6 @@ RUN git clone https://github.com/gam-data-project/crawler-py-batch.git
 WORKDIR /home/crawler-py-batch
 RUN pip install --no-cache-dir -r requirements.txt
 
-#
 # 전체 코드 복사
 COPY . .
 
