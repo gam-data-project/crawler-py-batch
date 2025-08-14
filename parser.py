@@ -26,9 +26,9 @@ def extract_order_items(driver) -> list[dict]:
     #제품 정보 추출
     products_div = driver.find_element(By.XPATH, '//*[@id="f_order"]/div/div/div/div[1]/div[7]/div[1]/div[1]')
 
-    with open(f"debug_xpath.html", "w", encoding="utf-8") as f:
-        f.write(products_div.get_attribute("outerHTML"))
-    print("💾 debug_xpath.html 저장 완료")
+    # with open(f"debug_xpath.html", "w", encoding="utf-8") as f:
+    #     f.write(products_div.get_attribute("outerHTML"))
+    # print("💾 debug_xpath.html 저장 완료")
 
     # products_div 내부 요소 파싱
     items = products_div.find_elements(By.CLASS_NAME, "clfix")
@@ -77,7 +77,7 @@ def extract_deposit_date(driver) -> dict:
                 status_text = cells[0].text.strip()
                 if "입금완료" in status_text:
                     date_text = cells[1].text.strip()
-                    match = re.search(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', date_text)
+                    match = re.search(r'\d{4}-\d{2}-\d{2}', date_text)
                     if match:
                         result['order_date'] = match.group(0)
                         break
