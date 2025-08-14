@@ -10,6 +10,7 @@ from parser import extract_deposit_date
 from parser import extract_shipping_fee
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from send_to import send_to_sales, send_to_delivery
 
 """
 주문최소된 주문서 확인
@@ -133,7 +134,7 @@ while start_date <= end_date:
         driver.get(detail_url)
         print(f"🔗 상세 주문 URL: {detail_url}")
         time.sleep(2)
-        # TODO: 여기에 상세 정보 수집 로직 추가
+        # 상세 정보 수집 로직 추가
 
         parsed = extract_order_items(driver)
 
@@ -141,7 +142,7 @@ while start_date <= end_date:
 
         shipping = extract_shipping_fee(driver)
 
-
+        
         if not parsed or not date:
             print("⚠️  데이터 없음 또는 구조 다름 (건너뜀)")
         else:
@@ -151,6 +152,9 @@ while start_date <= end_date:
             print(date)
 
         print("🚚 배송비:", shipping)
+
+        send_to_sales(root_idx, parsed, date, shipping)
+        send_to_delivery(root_idx, date, shipping)
 
     start_date += timedelta(days=1)
 
