@@ -153,8 +153,11 @@ while start_date <= end_date:
 
         print("🚚 배송비:", shipping)
 
-        send_to_sales(root_idx, parsed, date, shipping)
-        send_to_delivery(root_idx, date, shipping)
+        ok_cnt = send_to_sales(root_idx, parsed, date, shipping)
+        print("sales 전송 성공 건수:", ok_cnt)
+        ok = send_to_delivery(root_idx, date, shipping)
+        print("delivery 전송 성공:", ok)
+
 
     start_date += timedelta(days=1)
 
