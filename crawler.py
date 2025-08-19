@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timedelta
 from selenium.webdriver.chrome.options import Options
 from parser import extract_order_items
-from parser import extract_deposit_date
+#from parser import extract_deposit_date
 from parser import extract_shipping_fee
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -98,7 +98,8 @@ time.sleep(2)  # 로그인 대기
 
 # 날짜 반복: 2022-01-04부터 오늘까지
 start_date = datetime(2022, 1, 4).date()
-end_date = datetime.today().date()
+end_date = datetime(2022, 1, 31).date()
+#end_date = datetime.today().date()
 
 while start_date <= end_date:
     s_date = e_date = start_date.strftime("%Y-%m-%d")
@@ -138,7 +139,8 @@ while start_date <= end_date:
 
         parsed = extract_order_items(driver)
 
-        date = extract_deposit_date(driver)
+        #date = extract_deposit_date(driver)
+        date = s_date
 
         shipping = extract_shipping_fee(driver)
 

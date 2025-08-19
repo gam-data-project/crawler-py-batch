@@ -65,21 +65,21 @@ def extract_order_items(driver) -> list[dict]:
 - 입금완료 상태가 아닐 경우 {'order_date': None}
 - 입금완료일이 존재할 경우 {'order_date': 'YYYY-MM-DD'}
 """
-def extract_deposit_date(driver) -> str:
-    try:
-        rows = driver.find_elements(By.XPATH, '//*[@id="_ACCOUNT_LOG_"]/tbody/tr')
-        for row in rows:
-            cells = row.find_elements(By.TAG_NAME, 'td')
-            if len(cells) >= 2:
-                status_text = cells[0].text.strip()
-                if "입금완료" in status_text:
-                    date_text = cells[1].text.strip()
-                    match = re.search(r'\d{4}-\d{2}-\d{2}', date_text)
-                    if match:
-                        return match.group(0)   # "2022-01-04" 문자열 반환
-    except Exception as e:
-        print("❌ 입금일자 추출 오류:", e)
-    return None
+# def extract_deposit_date(driver) -> str:
+#     try:
+#         rows = driver.find_elements(By.XPATH, '//*[@id="_ACCOUNT_LOG_"]/tbody/tr')
+#         for row in rows:
+#             cells = row.find_elements(By.TAG_NAME, 'td')
+#             if len(cells) >= 2:
+#                 status_text = cells[0].text.strip()
+#                 if "입금완료" in status_text:
+#                     date_text = cells[1].text.strip()
+#                     match = re.search(r'\d{4}-\d{2}-\d{2}', date_text)
+#                     if match:
+#                         return match.group(0)   # "2022-01-04" 문자열 반환
+#     except Exception as e:
+#         print("❌ 입금일자 추출 오류:", e)
+#     return None
 
 
 """
