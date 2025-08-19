@@ -42,7 +42,7 @@ def send_to_sales(root_idx, parsed, date, shipping):
             "quantity": item.get("quantity"),
             "product_total": item.get("product_total"),
             "unit_price": item.get("unit_price"),
-            "is_shipping_included": shipping.get("shipping_included", False),
+            "shipping_included": shipping.get("shipping_included", False),
             "order_date": str(date)
         })
     
@@ -89,7 +89,7 @@ def send_to_delivery(root_idx, date, shipping):
     delivery_payload = {
         "order_number": root_idx,
         "platform": "nongra",
-        "is_shipping_included": shipping.get("shipping_included", False),
+        "shipping_included": shipping.get("shipping_included", False),
         #배송비가 따로 청구 되면 수집한 배송비 데이터를 넣지만 
         #배송비가 제품 금액에 포함되면 배송비 테이터를 따로 책정해서 넣어준다.
         "total_delivery_fee": (
