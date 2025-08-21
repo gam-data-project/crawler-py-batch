@@ -97,8 +97,9 @@ else:
 time.sleep(2)  # 로그인 대기
 
 # 날짜 반복: 2022-01-04부터 오늘까지
-start_date = datetime(2022, 1, 4).date()
-end_date = datetime(2022, 1, 31).date()
+#start_date = datetime(2022, 1, 4).date()
+start_date = datetime(2022, 4, 1).date()
+end_date = datetime(2022, 4, 30).date()
 #end_date = datetime.today().date()
 
 while start_date <= end_date:

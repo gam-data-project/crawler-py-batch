@@ -38,4 +38,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 실행 명령 (원할 경우)
-CMD ["python", "crawler.py"]
+#CMD ["python", "crawler.py"]
