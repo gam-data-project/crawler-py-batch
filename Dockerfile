@@ -27,15 +27,15 @@ RUN wget https://storage.googleapis.com/chrome-for-testing-public/138.0.7204.94/
 
 # 코드 가져오기
 WORKDIR /home
-RUN git clone https://github.com/gam-data-project/crawler-py-batch.git
+RUN rm -rf crawler-py-batch && \
+    git clone https://github.com/gam-data-project/crawler-py-batch.git
 
 # requirements 설치
 WORKDIR /home/crawler-py-batch
 RUN pip install --no-cache-dir -r requirements.txt
 
-#
 # 전체 코드 복사
 COPY . .
 
 # 실행 명령 (원할 경우)
-CMD ["python", "crawler.py"]
+#CMD ["python", "crawler.py"]

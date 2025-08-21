@@ -6,10 +6,11 @@ import time
 from datetime import datetime, timedelta
 from selenium.webdriver.chrome.options import Options
 from parser import extract_order_items
-from parser import extract_deposit_date
+#from parser import extract_deposit_date
 from parser import extract_shipping_fee
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from send_to import send_to_sales, send_to_delivery
 
 """
 주문최소된 주문서 확인
@@ -96,8 +97,10 @@ else:
 time.sleep(2)  # 로그인 대기
 
 # 날짜 반복: 2022-01-04부터 오늘까지
-start_date = datetime(2022, 1, 4).date()
-end_date = datetime.today().date()
+#start_date = datetime(2022, 1, 4).date()
+start_date = datetime(2022, 4, 1).date()
+end_date = datetime(2022, 4, 30).date()
+#end_date = datetime.today().date()
 
 while start_date <= end_date:
     s_date = e_date = start_date.strftime("%Y-%m-%d")
@@ -133,15 +136,16 @@ while start_date <= end_date:
         driver.get(detail_url)
         print(f"🔗 상세 주문 URL: {detail_url}")
         time.sleep(2)
-        # TODO: 여기에 상세 정보 수집 로직 추가
+        # 상세 정보 수집 로직 추가
 
         parsed = extract_order_items(driver)
 
-        date = extract_deposit_date(driver)
+        #date = extract_deposit_date(driver)
+        date = s_date
 
         shipping = extract_shipping_fee(driver)
 
-
+        
         if not parsed or not date:
             print("⚠️  데이터 없음 또는 구조 다름 (건너뜀)")
         else:
@@ -151,6 +155,12 @@ while start_date <= end_date:
             print(date)
 
         print("🚚 배송비:", shipping)
+
+        ok_cnt = send_to_sales(root_idx, parsed, date, shipping)
+        print("sales 전송 성공 건수:", ok_cnt)
+        ok = send_to_delivery(root_idx, date, shipping)
+        print("delivery 전송 성공:", ok)
+
 
     start_date += timedelta(days=1)
 
