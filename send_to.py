@@ -77,6 +77,7 @@ def send_to_sales(root_idx, parsed, date, shipping):
     is_shipping_included(bool)
     total_delivery_fee(int)
     shipping_count(int)
+    unit_price(int)
     order_date(str)
     """
 def send_to_delivery(root_idx, date, shipping):
@@ -86,17 +87,24 @@ def send_to_delivery(root_idx, date, shipping):
         return False
 
     # 2. delivery_fee 테이블 전송
+
+    total_delivery_fee = (
+        shipping.get("shipping_fee") if shipping.get("shipping_included", False) else 4000
+    )
+    shipping_count = 1
+    unit_price = int(total_delivery_fee / shipping_count) if shipping_count else 0
+
+
     delivery_payload = {
         "order_number": root_idx,
         "platform": "nongra",
         "shipping_included": shipping.get("shipping_included", False),
         #배송비가 따로 청구 되면 수집한 배송비 데이터를 넣지만 
         #배송비가 제품 금액에 포함되면 배송비 테이터를 따로 책정해서 넣어준다.
-        "total_delivery_fee": (
-        shipping.get("shipping_fee") if shipping.get("shipping_included", False) else 4000
-        ),
+        "total_delivery_fee": total_delivery_fee,
         #모든 제품은 배송비가 반드시 한 개 이상 있다.
-        "shipping_count": 1,
+        "shipping_count": shipping_count,
+        "unit_price": unit_price,
         "order_date": str(date)
     }
     # 디버그: 타입/값 확인
