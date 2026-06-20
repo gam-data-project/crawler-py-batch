@@ -11,22 +11,70 @@ from parser import extract_shipping_fee
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from send_to import send_to_sales, send_to_delivery
-
+from selenium.webdriver.support.ui import Select
 """
 주문최소된 주문서 확인
 -주문 목록 페이지 내에서 취소된 주문을 걸러냄
 -주문 목록 페이지에서 해당 주문(root_idx)이 '주문취소' 상태인지 확인
 """
 
-def is_canceled_order(driver, root_idx: str) -> bool:
+# def is_canceled_order(driver, root_idx: str) -> bool:
 
+#     try:
+#         xpath = f'//*[@id="centerbody_scroll"]//div[@attr-idx="{root_idx}"]/../../..//div[contains(text(), "주문취소")]'
+#         cancel_elements = driver.find_elements(By.XPATH, xpath)
+#         return len(cancel_elements) > 0
+#     except Exception as e:
+#         print(f"❌ 주문취소 확인 중 오류 (root_idx={root_idx}):", e)
+#         return False
+
+   
+
+CANCEL_WORDS = {"주문취소", "주문완료"}
+
+def is_canceled_order(driver, root_idx: str) -> bool:
+    """
+    - '주문취소' 버튼 텍스트가 보이면 False
+    - select 박스의 선택값이 '주문완료'면 False
+    - 둘 다 없으면 True
+    """
     try:
-        xpath = f'//*[@id="centerbody_scroll"]//div[@attr-idx="{root_idx}"]/../../..//div[contains(text(), "주문취소")]'
-        cancel_elements = driver.find_elements(By.XPATH, xpath)
-        return len(cancel_elements) > 0
-    except Exception as e:
-        print(f"❌ 주문취소 확인 중 오류 (root_idx={root_idx}):", e)
+        base_xpath = f'//*[@id="centerbody_scroll"]//div[@attr-idx="{root_idx}"]/../../..'
+
+        # 1) 버튼/라벨(div)에서 '주문취소' 찾기
+        try:
+            cancel_divs = driver.find_elements(
+                By.XPATH,
+                base_xpath + '//div[contains(text(), "주문취소")]'
+            )
+            if len(cancel_divs) > 0:
+                print(f"[{root_idx}] LABEL: 주문취소")
+                return True
+        except Exception:
+            pass
+
+        #2) select 박스의 선택된 옵션이 '주문완료'인지 확인
+        try:
+            sel = driver.find_element(
+                By.XPATH,
+                base_xpath + '//select[contains(@class,"buys")]'
+            )
+            selected_text = Select(sel).first_selected_option.text.strip()
+            if selected_text == "주문완료":
+                print(f"[{root_idx}] SELECT: 주문완료")
+                return True
+        except Exception:
+            pass
+
+
+        # 두 조건 다 없으면 True
         return False
+
+    except Exception as e:
+        print(f"❌ 주문 상태 확인 중 오류 (root_idx={root_idx}): {e}")
+        return False
+
+
 
 
 
@@ -98,8 +146,10 @@ time.sleep(2)  # 로그인 대기
 
 # 날짜 반복: 2022-01-04부터 오늘까지
 #start_date = datetime(2022, 1, 4).date()
-start_date = datetime(2022, 4, 1).date()
-end_date = datetime(2022, 4, 30).date()
+#start_date = datetime(2025, 8, 31).date()
+start_date = datetime(2026, 2, 26).date()
+end_date = datetime(2026, 5, 6).date()
+# end_date = datetime(2025, 9, 22).date()
 #end_date = datetime.today().date()
 
 while start_date <= end_date:
