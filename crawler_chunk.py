@@ -11,6 +11,8 @@ from parser import extract_order_items
 from parser import extract_shipping_fee
 from selenium.webdriver.support.ui import Select
 from send_to_chunk import send_chunk
+from send_to_chunk import notify_slack
+from send_to_chunk import notify_batch_failure
 
 
 # logger 설정
@@ -154,30 +156,77 @@ def get_data(driver, start_date, end_date):
         logger.info("주문 수집 완료: date=%s, count=%d", s_date, len(order_ids))
 
         for root_idx in order_ids:
-            detail_url = f"https://www.farmer4989.com/html/order_show.php?root_idx={root_idx}"
-            driver.get(detail_url)
-            logger.info("상세 주문 페이지 진입: %s", detail_url)
-            time.sleep(2)
+            try:
+                detail_url = f"https://www.farmer4989.com/html/order_show.php?root_idx={root_idx}"
+                driver.get(detail_url)
+                logger.info("상세 주문 페이지 진입: %s", detail_url)
+                time.sleep(2)
 
-            # 상품 정보 추출
-            parsed = extract_order_items(driver)
-            # 날짜
-            date = s_date
-            # 배송비 정보 추출
-            shipping = extract_shipping_fee(driver)
+                # 상품 정보 추출
+                parsed = extract_order_items(driver)
+                # 날짜
+                date = s_date
+                # 배송비 정보 추출
+                shipping = extract_shipping_fee(driver)
 
-            # 주문 내역 데이터 생성
-            if not parsed or not date:
-                logger.warning("파싱 실패 또는 데이터 없음: root_idx=%s", root_idx)
-            else:
-                order_data = build_order_data(root_idx, parsed, date, shipping)
-                all_orders.append(order_data)
-                logger.info("전체 주문 리스트 적재 완료: cumulative_count=%d", len(all_orders))
+                # 주문 내역 데이터 생성
+                if not parsed or not date:
+                    logger.warning("파싱 실패 또는 데이터 없음: root_idx=%s", root_idx)
+                else:
+                    order_data = build_order_data(root_idx, parsed, date, shipping)
+                    all_orders.append(order_data)
+                    logger.info("전체 주문 리스트 적재 완료: cumulative_count=%d", len(all_orders))
+            except Exception as e:
+                logger.exception("주문 상세 크롤링 실패: root_idx=%s, error=%s", root_idx, e)
+                notify_batch_failure(
+                    stage="crawling_failed",
+                    root_idx=root_idx,
+                )
+                raise
 
         current_date += timedelta(days=1)
 
     logger.info("데이터 수집 완료: total_orders=%d", len(all_orders))
     return all_orders
+
+
+# 성공 요약 슬랙 알림 사용 여부를 제어
+def should_notify_success_slack():
+    """환경변수 기준으로 성공 요약 슬랙 알림 사용 여부를 반환한다."""
+    logger.info("should_notify_success_slack started")
+
+    value = os.getenv("SLACK_NOTIFY_SUCCESS", "false").strip().lower()
+    enabled = value in {"1", "true", "y", "yes", "on"}
+
+    logger.info("should_notify_success_slack completed: enabled=%s", enabled)
+    return enabled
+
+
+# 배치 전체 성공 시 슬랙 요약 알림을 1회 전송
+def notify_batch_success_summary(total_orders, total_chunks, success_chunks):
+    """전체 chunk 전송이 모두 성공했을 때 슬랙 요약 알림을 1회 전송한다."""
+    logger.info(
+        "notify_batch_success_summary started: total_orders=%d, total_chunks=%d, success_chunks=%d",
+        total_orders,
+        total_chunks,
+        success_chunks
+    )
+
+    if not should_notify_success_slack():
+        logger.info("notify_batch_success_summary skipped: success slack disabled")
+        return
+
+    message = (
+        f"[SUCCEED] "
+        f"total_orders={total_orders}, "
+        f"total_chunks={total_chunks}, "
+        f"success_chunks={success_chunks}"
+    )
+
+    notify_slack(message)
+    logger.info("notify_batch_success_summary completed")
+
+
 
 
 """
@@ -186,7 +235,14 @@ chunk 생성 및 전송
 def send_data(all_orders):
     if not all_orders:
         logger.warning("전송할 주문 데이터가 없습니다.")
-        return
+        return {
+            "total_orders": 0,
+            "total_chunks": 0,
+            "success_chunks": 0,
+            "failed_chunks": 0,
+            "stopped_on_chunk_seq": None,
+            "last_result": None,
+        }
 
     # 수집 완료 후 chunk 생성
     chunk_size = int(os.getenv("CHUNK_SIZE", "50"))
@@ -194,6 +250,8 @@ def send_data(all_orders):
         raise ValueError("CHUNK_SIZE must be greater than 0")
 
     total_chunks = (len(all_orders) + chunk_size - 1) // chunk_size
+    success_chunks = 0
+    failed_chunks = 0
 
     # chunk 전송
     for idx, start_idx in enumerate(range(0, len(all_orders), chunk_size), start=1):
@@ -209,6 +267,36 @@ def send_data(all_orders):
         logger.info("chunk 전송 시작: chunk_seq=%d, order_count=%d", idx, len(chunk))
         result = send_chunk(payload)
         logger.info("chunk 전송 결과: chunk_seq=%d, result=%s", idx, result)
+
+        if result.get("ok"):
+            success_chunks += 1
+            continue
+
+        failed_chunks += 1
+
+        logger.error(
+            "chunk 전송 실패로 배치를 중단합니다: chunk_seq=%d, result=%s",
+            idx,
+            result
+        )
+
+        return {
+            "total_orders": len(all_orders),
+            "total_chunks": total_chunks,
+            "success_chunks": success_chunks,
+            "failed_chunks": failed_chunks,
+            "stopped_on_chunk_seq": idx,
+            "last_result": result,
+        }
+
+    return {
+        "total_orders": len(all_orders),
+        "total_chunks": total_chunks,
+        "success_chunks": success_chunks,
+        "failed_chunks": failed_chunks,
+        "stopped_on_chunk_seq": None,
+        "last_result": None,
+    }
 
 
 """
@@ -279,12 +367,26 @@ def main():
         time.sleep(2)
 
         all_orders = get_data(driver, start_date, end_date)
-        send_data(all_orders)
+        summary = send_data(all_orders)
+
+        logger.info("배치 전송 요약: %s", summary)
+
+        if summary["total_chunks"] > 0 and summary["failed_chunks"] == 0:
+            notify_batch_success_summary(
+                total_orders=summary["total_orders"],
+                total_chunks=summary["total_chunks"],
+                success_chunks=summary["success_chunks"]
+            )
+
+    except Exception as e:
+        logger.exception("크롤러 실행 중 치명적 오류 발생: error=%s", e)
+        raise
 
     finally:
         time.sleep(5)
         driver.quit()
         logger.info("크롤러 종료")
+
 
 
 if __name__ == "__main__":

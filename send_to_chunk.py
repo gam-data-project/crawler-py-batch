@@ -83,7 +83,41 @@ def build_fail_result(
         "response_body": response_body,
     }
 
+def notify_batch_failure(
+    stage: Optional[str] = None,
+    chunk_id: Optional[str] = None,
+    chunk_seq: Optional[int] = None,
+    total_chunks: Optional[int] = None,
+    order_count: Optional[int] = None,
+    root_idx: Optional[str] = None,
+) -> None:
+    """배치 실패 상황을 공통 포맷으로 슬랙에 전송한다."""
+    logger.info(
+        "notify_batch_failure started: stage=%s, chunk_id=%s, root_idx=%s",
+        stage,
+        chunk_id,
+        root_idx,
+    )
 
+    parts = []
+
+    if stage:
+        parts.append(f"stage={stage}")
+    if root_idx:
+        parts.append(f"root_idx={root_idx}")
+    if chunk_id:
+        parts.append(f"chunk_id={chunk_id}")
+    if chunk_seq is not None and total_chunks is not None:
+        parts.append(f"chunk_seq={chunk_seq}/{total_chunks}")
+    if order_count is not None:
+        parts.append(f"order_count={order_count}")
+
+    message = "[🔴 FAILED]"
+    if parts:
+        message += " " + ", ".join(parts)
+
+    notify_slack(message)
+    logger.info("notify_batch_failure completed")
 
 
 # chunk payload를 API로 전송하고 재시도/실패 알림까지 처리한다.
@@ -149,11 +183,7 @@ def send_chunk(payload: Dict[str, Any]) -> Dict[str, Any]:
             # 4xx는 보통 데이터 문제라 즉시 실패 처리 -> 재시도 안함
             if 400 <= resp.status_code < 500:
                 last_error_type = "client_error"
-                fail_message = (
-                    f"[crawler chunk send failed] chunk_id={chunk_id}, "
-                    f"chunk_seq={chunk_seq}/{total_chunks}, order_count={len(orders)}, "
-                    f"status_code={resp.status_code}, error_type={last_error_type}"
-                )
+                
                 logger.error(
                     "send_chunk client error: chunk_id=%s status_code=%s body=%s",
                     chunk_id,
@@ -161,7 +191,13 @@ def send_chunk(payload: Dict[str, Any]) -> Dict[str, Any]:
                     last_response_body,
                 )
 
-                notify_slack(fail_message)
+                notify_batch_failure(
+                    chunk_id=chunk_id,
+                    chunk_seq=chunk_seq,
+                    total_chunks=total_chunks,
+                    order_count=len(orders),
+                )
+
 
                 return build_fail_result(
                     chunk_id=chunk_id,
@@ -208,14 +244,19 @@ def send_chunk(payload: Dict[str, Any]) -> Dict[str, Any]:
             )
             time.sleep(retry_delay_sec)
 
-    fail_message = (
-        f"[crawler chunk send failed] chunk_id={chunk_id}, "
-        f"chunk_seq={chunk_seq}/{total_chunks}, order_count={len(orders)}, "
-        f"status_code={last_status_code}, error_type={last_error_type}"
+    logger.error(
+        "send_chunk exhausted retries: chunk_id=%s status_code=%s error_type=%s",
+        chunk_id,
+        last_status_code,
+        last_error_type,
+        )
+    
+    notify_batch_failure(
+        chunk_id=chunk_id,
+        chunk_seq=chunk_seq,
+        total_chunks=total_chunks,
+        order_count=len(orders),
     )
-
-    logger.error("send_chunk exhausted retries: %s", fail_message)
-    notify_slack(fail_message)
 
     return build_fail_result(
         chunk_id=chunk_id,
