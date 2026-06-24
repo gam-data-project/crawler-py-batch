@@ -13,6 +13,7 @@ from selenium.webdriver.support.ui import Select
 from send_to_chunk import send_chunk
 from send_to_chunk import notify_slack
 from send_to_chunk import notify_batch_failure
+from selenium.webdriver.chrome.service import Service
 
 
 # logger 설정
@@ -333,7 +334,10 @@ def main():
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
 
-    driver = webdriver.Chrome(options=options)
+    # 이미지에 설치된 Chrome 브라우저를 명시적으로 사용
+    options.binary_location = "/usr/local/bin/google-chrome"
+    service = Service("/usr/local/bin/chromedriver")
+    driver = webdriver.Chrome(service=service, options=options)
     logger.info("Chrome driver 실행 완료")
 
     try:
