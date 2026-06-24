@@ -1,48 +1,66 @@
-name: Build and Push Docker Image
+name: Build and Push Crawler Image to ECR
 
 on:
-  pull_request:
+  push:
     branches:
-      - main  # main 브랜치에 push될 때만 실행
+      - main
+  workflow_dispatch:
+
+permissions:
+  # 저장소 코드 읽기 권한
+  contents: read
+  # AWS OIDC 인증용 권한
+  id-token: write
+
+env:
+  # ECR이 있는 AWS 리전
+  AWS_REGION: ap-northeast-2
+  # ECR 리포지토리 이름
+  ECR_REPOSITORY: crawler-py-batch
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 코드 체크아웃
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout
+        # GitHub 저장소 코드 가져오기
+        uses: actions/checkout@v6
 
-      # 2. DockerHub 로그인
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.1.0
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          # GitHub OIDC로 Assume할 IAM Role
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      # 3. 캐시로 빌드 속도 향상
+      - name: Login to Amazon ECR
+        id: login-ecr
+        # ECR 로그인
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        # Docker buildx 활성화
+        uses: docker/setup-buildx-action@v4
 
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+      - name: Set image metadata
+        id: meta
+        # 커밋 sha가 붙은 최종 이미지 주소 생성
+        run: echo "image_uri=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
-      # 4. 이미지 빌드 및 푸시
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Build and push image
+        uses: docker/build-push-action@v7
         with:
           context: .
+          # x86_64 EC2용 이미지 빌드
+          platforms: linux/amd64
+          # 빌드 후 ECR에 push
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/crawler-py-batch:latest
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-        env:
-          NONGRA_URL: ${{ secrets.NONGRA_URL }}
-          NONGRA_LOGIN_ID: ${{ secrets.NONGRA_LOGIN_ID }}
-          NONGRA_LOGIN_PW: ${{ secrets.NONGRA_LOGIN_PW }}
+          # 커밋 sha 태그와 latest 태그를 함께 push
+          tags: |
+            ${{ steps.meta.outputs.image_uri }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          # 이전 빌드 캐시 사용
+          cache-from: type=gha
+          # 새 빌드 캐시 저장
+          cache-to: type=gha,mode=max
