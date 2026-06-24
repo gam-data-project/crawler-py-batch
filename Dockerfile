@@ -13,7 +13,8 @@ RUN apt update && apt install -y \
     libnss3 libx11-xcb1 libxcomposite1 \
     libxdamage1 libxrandr2 xdg-utils
 
-# Chrome/ChromeDriver를 같은 버전으로 고정해 브라우저-드라이버 불일치 방지
+
+# # Chrome/ChromeDriver를 같은 버전으로 고정해 브라우저-드라이버 불일치 방지
 ARG CHROME_VERSION=138.0.7204.94
 
 # Chrome for Testing 브라우저 설치
