@@ -13,17 +13,23 @@ RUN apt update && apt install -y \
     libnss3 libx11-xcb1 libxcomposite1 \
     libxdamage1 libxrandr2 xdg-utils
 
-# Chrome 설치
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt install -y ./google-chrome-stable_current_amd64.deb && \
-    rm google-chrome-stable_current_amd64.deb
+# Chrome/ChromeDriver를 같은 버전으로 고정해 브라우저-드라이버 불일치 방지
+ARG CHROME_VERSION=138.0.7204.94
 
-# 고정된 ChromeDriver 설치 (버전: 138.0.7204.94)
-RUN wget https://storage.googleapis.com/chrome-for-testing-public/138.0.7204.94/linux64/chromedriver-linux64.zip && \
-    unzip chromedriver-linux64.zip && \
-    mv chromedriver-linux64/chromedriver /usr/bin/chromedriver && \
-    chmod +x /usr/bin/chromedriver && \
-    rm -rf chromedriver-linux64*
+# Chrome for Testing 브라우저 설치
+RUN wget -q -O /tmp/chrome-linux64.zip \
+    "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chrome-linux64.zip" && \
+    unzip /tmp/chrome-linux64.zip -d /opt && \
+    ln -s /opt/chrome-linux64/chrome /usr/local/bin/google-chrome && \
+    rm /tmp/chrome-linux64.zip
+
+# 같은 버전의 ChromeDriver 설치
+RUN wget -q -O /tmp/chromedriver-linux64.zip \
+    "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chromedriver-linux64.zip" && \
+    unzip /tmp/chromedriver-linux64.zip -d /opt && \
+    ln -s /opt/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+    chmod +x /opt/chromedriver-linux64/chromedriver && \
+    rm /tmp/chromedriver-linux64.zip
 
 # 코드 가져오기
 WORKDIR /home
